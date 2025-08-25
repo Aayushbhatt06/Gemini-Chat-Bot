@@ -83,21 +83,21 @@ export default function EnhancedChatbot() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 relative overflow-hidden">
       {/* Glassmorphism Header */}
-      <div className="relative z-10 p-6 bg-white/10 border-b border-white/20 shadow-2xl">
+      <div className="relative z-10 p-6 bg-black/20 border-b border-white/10 shadow-2xl">
         <div className="flex items-center justify-center space-x-3">
           <div className="relative">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-ping"></div>
           </div>
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
               AI Assistant
             </h1>
-            <pre className="text-sm text-white/70">Always here to help</pre>
+            <pre className="text-sm text-white/60">Always here to help</pre>
           </div>
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function EnhancedChatbot() {
             }}
           >
             {msg.role === "model" && (
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+              <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
                 <Bot className="w-4 h-4 text-white" />
               </div>
             )}
@@ -123,8 +123,8 @@ export default function EnhancedChatbot() {
             <div
               className={`relative max-w-1/2 md:max-w-md lg:max-w-lg p-4 rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
                 msg.role === "user"
-                  ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white ml-auto"
-                  : "bg-white/10 border border-white/20 text-white mr-auto"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white ml-auto"
+                  : "bg-black/20 border border-white/10 text-white mr-auto"
               }`}
             >
               {msg.role === "model" && (
@@ -133,15 +133,6 @@ export default function EnhancedChatbot() {
                   style={{ animationDuration: "3s" }}
                 />
               )}
-              {/* <pre className="text-sm md:text-base leading-relaxed whitespace-pre-wrap break-word">
-                {Array.isArray(msg.parts) ? msg.parts[0].text : msg.parts}
-              </pre> */}
-              {/* <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                className="text-sm md:text-base leading-relaxed whitespace-pre-wrap break-words"
-              >
-                {Array.isArray(msg.parts) ? msg.parts[0].text : msg.parts}
-              </ReactMarkdown> */}
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -152,7 +143,7 @@ export default function EnhancedChatbot() {
                     />
                   ),
                   strong: ({ node, ...props }) => (
-                    <strong className="font-bold text-yellow-300" {...props} />
+                    <strong className="font-bold text-cyan-300" {...props} />
                   ),
                   li: ({ node, ...props }) => (
                     <li className="list-disc ml-5" {...props} />
@@ -168,14 +159,14 @@ export default function EnhancedChatbot() {
               <div
                 className={`absolute top-4 w-3 h-3 transform rotate-45 ${
                   msg.role === "user"
-                    ? "right-[-6px] bg-gradient-to-r from-purple-500 to-blue-500"
-                    : "left-[-6px] bg-white/10 border-l border-t border-white/20"
+                    ? "right-[-6px] bg-gradient-to-r from-cyan-500 to-blue-600"
+                    : "left-[-6px] bg-black/20 border-l border-t border-white/10"
                 }`}
               ></div>
             </div>
 
             {msg.role === "user" && (
-              <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+              <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
                 <User className="w-4 h-4 text-white" />
               </div>
             )}
@@ -184,18 +175,18 @@ export default function EnhancedChatbot() {
 
         {loading && (
           <div className="flex items-center space-x-3 animate-pulse">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 shadow-xl">
+            <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-4 shadow-xl">
               <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
                 <div
                   className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
                   style={{ animationDelay: "0.1s" }}
                 ></div>
                 <div
-                  className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                  className="w-2 h-2 bg-teal-400 rounded-full animate-bounce"
                   style={{ animationDelay: "0.2s" }}
                 ></div>
               </div>
@@ -206,11 +197,11 @@ export default function EnhancedChatbot() {
       </div>
 
       {/* Enhanced Input Area */}
-      <div className="relative z-10 p-6 backdrop-blur-md bg-white/10 border-t border-white/20">
+      <div className="relative z-10 p-6 backdrop-blur-md bg-black/20 border-t border-white/10">
         <div className="flex items-center space-x-4 max-w-4xl mx-auto">
           <div className="relative flex-1">
             <input
-              className="w-full p-4 pr-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300 shadow-xl"
+              className="w-full p-4 pr-12 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 shadow-xl"
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -218,7 +209,7 @@ export default function EnhancedChatbot() {
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/30">
-              <kbd className="px-2 py-1 text-xs bg-white/10 rounded border border-white/20">
+              <kbd className="px-2 py-1 text-xs bg-black/20 rounded border border-white/10">
                 Enter
               </kbd>
             </div>
@@ -227,14 +218,14 @@ export default function EnhancedChatbot() {
           <button
             onClick={sendMessage}
             disabled={!question.trim() || loading}
-            className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl shadow-xl text-white transition-all duration-300 hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group"
+            className="p-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl shadow-xl text-white transition-all duration-300 hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group"
           >
             <Send className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
           </button>
         </div>
 
         {/* Subtle hint text */}
-        <p className="text-center text-white/30 text-xs mt-3">
+        <p className="text-center text-white/25 text-xs mt-3">
           Press Enter to send • AI responses are simulated
         </p>
       </div>
