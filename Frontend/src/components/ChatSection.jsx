@@ -16,7 +16,7 @@ import remarkGfm from "remark-gfm";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const BACKEND_URL = "http://localhost:3000";
 
-export default function ChatSection({ userId = "default-user" }) {
+export default function ChatSection() {
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,6 +26,10 @@ export default function ChatSection({ userId = "default-user" }) {
   const [backendAvailable, setBackendAvailable] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
+  const [error, setError] = useState("");
+
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -36,176 +40,145 @@ export default function ChatSection({ userId = "default-user" }) {
     console.log(`[ChatSection] ${message}`, data);
   };
 
+  // Load user from localStorage on component mount
+  useEffect(() => {
+    const getUserFromStorage = () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          debugLog("User loaded from localStorage:", user);
+          setUserId(user.id);
+          setUserInfo(user);
+          return;
+        }
+
+        const storedUserId = localStorage.getItem("userId");
+        if (storedUserId) {
+          debugLog("UserId loaded from localStorage:", storedUserId);
+          setUserId(storedUserId);
+          return;
+        }
+
+        const token = localStorage.getItem("authToken");
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            if (payload.id) {
+              debugLog("UserId extracted from token:", payload.id);
+              setUserId(payload.id);
+              return;
+            }
+          } catch (e) {
+            debugLog("Failed to extract userId from token:", e);
+          }
+        }
+
+        console.warn("No user data found in localStorage");
+        setError("Please log in to access chat");
+      } catch (error) {
+        console.error("Error loading user from localStorage:", error);
+        setError("Error loading user data");
+      }
+    };
+
+    getUserFromStorage();
+  }, []);
+
   // Check backend health
   const checkBackendHealth = async () => {
     try {
       debugLog("Checking backend health...");
       const response = await fetch(`${BACKEND_URL}/health`);
-      return response.ok;
+      const isHealthy = response.ok;
+      debugLog(`Backend health status: ${isHealthy}`);
+      return isHealthy;
     } catch (err) {
       debugLog("Backend health check failed:", err.message);
       return false;
     }
   };
 
-  // Load sessions from MongoDB
+  // FIXED: Load all sessions for the user with better error handling
   const loadUserSessions = async () => {
-    if (!backendAvailable) return [];
-    try {
-      const res = await fetch(`${BACKEND_URL}/history/user/${userId}/sessions`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.sessions)) {
-        setSessions(data.sessions);
-        return data.sessions;
-      }
+    if (!backendAvailable) {
+      debugLog("Backend not available for loading sessions");
       return [];
+    }
+
+    if (!userId) {
+      debugLog("No userId available for loading sessions");
+      return [];
+    }
+
+    try {
+      debugLog(`Fetching sessions for user: ${userId}`);
+      const res = await fetch(`${BACKEND_URL}/history/user/${userId}/sessions`);
+      debugLog(`Sessions API response status: ${res.status}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      debugLog("Sessions API response:", data);
+
+      if (data.success) {
+        if (Array.isArray(data.sessions) && data.sessions.length > 0) {
+          debugLog(`Found ${data.sessions.length} sessions, updating state`);
+          setSessions(data.sessions);
+          return data.sessions;
+        } else {
+          debugLog("No sessions found in response");
+          setSessions([]);
+          return [];
+        }
+      } else {
+        debugLog("API returned success: false");
+        setSessions([]);
+        return [];
+      }
     } catch (err) {
       debugLog("Error loading sessions:", err.message);
+      setSessions([]);
       return [];
     }
   };
 
-  // Load single session from MongoDB
+  // Load a single session by ID
   const loadSessionFromBackend = async (sessionIdToLoad) => {
-    if (!backendAvailable || !sessionIdToLoad) return null;
+    if (!backendAvailable || !sessionIdToLoad || !userId) {
+      debugLog("Cannot load session: missing requirements");
+      return null;
+    }
+
     try {
-      const res = await fetch(
-        `${BACKEND_URL}/history/session/${sessionIdToLoad}`
-      );
+      debugLog(`Loading session: ${sessionIdToLoad} for user: ${userId}`);
+      const url = `${BACKEND_URL}/history/session/${sessionIdToLoad}?userId=${userId}`;
+      const res = await fetch(url);
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
       const data = await res.json();
-      return data.success ? data.session : null;
+      debugLog("Session data received:", data);
+
+      return data.success && data.session ? data.session : null;
     } catch (err) {
       debugLog("Error loading session:", err.message);
       return null;
     }
   };
 
-  // Create new session in MongoDB
-  const createNewSession = async (sessionName = null) => {
-    const name =
-      sessionName ||
-      `Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-
-    const defaultMessage = {
-      role: "model",
-      parts: [
-        { text: "Hello! I'm your AI assistant. How can I help you today?" },
-      ],
-      timestamp: new Date().toISOString(),
-    };
-
-    if (!backendAvailable) return null;
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/history/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, sessionName: name }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      if (data.success && data.session) {
-        setSessionId(data.session._id);
-        setCurrentSessionName(data.session.sessionName);
-        setMessages([defaultMessage]);
-        await saveMessageToBackend(defaultMessage);
-        await loadUserSessions();
-        return data.session._id;
-      }
-      return null;
-    } catch (err) {
-      debugLog("Error creating session:", err.message);
-      return null;
-    }
-  };
-
-  // Switch to session
-  const switchToSession = async (targetSessionId) => {
-    if (targetSessionId === sessionId) return;
-    const sessionData = await loadSessionFromBackend(targetSessionId);
-    if (sessionData) {
-      setSessionId(sessionData._id);
-      setCurrentSessionName(sessionData.sessionName);
-      setMessages(
-        sessionData.messages?.length
-          ? sessionData.messages
-          : [
-              {
-                role: "model",
-                parts: [
-                  {
-                    text: "Hello! I'm your AI assistant. How can I help you today?",
-                  },
-                ],
-                timestamp: new Date().toISOString(),
-              },
-            ]
-      );
-    }
-  };
-
-  // Delete session
-  const deleteSession = async (sessionIdToDelete) => {
-    if (!sessionIdToDelete || !backendAvailable) return;
-    try {
-      await fetch(`${BACKEND_URL}/history/session/${sessionIdToDelete}`, {
-        method: "DELETE",
-      });
-      const updated = await loadUserSessions();
-      if (sessionIdToDelete === sessionId) {
-        if (updated.length > 0) {
-          await switchToSession(updated[0]._id);
-        } else {
-          await createNewSession();
-        }
-      }
-    } catch (err) {
-      debugLog("Error deleting session:", err.message);
-    }
-  };
-
-  // Init on mount
-  useEffect(() => {
-    const initializeChat = async () => {
-      setInitializing(true);
-      const isBackendHealthy = await checkBackendHealth();
-      setBackendAvailable(isBackendHealthy);
-      if (!isBackendHealthy) {
-        setInitializing(false);
-        return;
-      }
-      try {
-        const userSessions = await loadUserSessions();
-        if (userSessions.length > 0) {
-          await switchToSession(userSessions[0]._id);
-        } else {
-          await createNewSession();
-        }
-      } catch (err) {
-        debugLog("Init error:", err.message);
-        await createNewSession();
-      }
-      setInitializing(false);
-    };
-    initializeChat();
-  }, [userId]);
-
-  // Scroll on new messages
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Save message to MongoDB
+  // Save message to backend
   const saveMessageToBackend = async (message) => {
-    if (!backendAvailable || !sessionId) return false;
+    if (!backendAvailable || !sessionId || !userId) return false;
+
     try {
       const res = await fetch(`${BACKEND_URL}/history/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId,
           sessionId,
           message: {
             ...message,
@@ -221,14 +194,190 @@ export default function ChatSection({ userId = "default-user" }) {
     }
   };
 
-  // Send message flow
+  // Create a new session
+  const createNewSession = async (sessionName = null) => {
+    if (!backendAvailable || !userId) {
+      debugLog("Cannot create session: backend unavailable or no userId");
+      return null;
+    }
+
+    const name =
+      sessionName ||
+      `Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+    const defaultMessage = {
+      role: "model",
+      parts: [
+        { text: "Hello! I'm your AI assistant. How can I help you today?" },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      debugLog(`Creating new session: ${name}`);
+      const res = await fetch(`${BACKEND_URL}/history/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, sessionName: name }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      debugLog("New session created:", data);
+
+      if (data.success && data.session) {
+        setSessionId(data.session._id);
+        setCurrentSessionName(data.session.sessionName);
+        setMessages([defaultMessage]);
+        await saveMessageToBackend(defaultMessage);
+
+        // FIXED: Reload sessions to update sidebar
+        await loadUserSessions();
+
+        return data.session._id;
+      }
+      return null;
+    } catch (err) {
+      debugLog("Error creating session:", err.message);
+      return null;
+    }
+  };
+
+  // Switch to a different session
+  const switchToSession = async (targetSessionId) => {
+    if (targetSessionId === sessionId) return;
+
+    debugLog(`Switching to session: ${targetSessionId}`);
+    const sessionData = await loadSessionFromBackend(targetSessionId);
+
+    if (sessionData) {
+      setSessionId(sessionData._id);
+      setCurrentSessionName(sessionData.sessionName);
+
+      if (sessionData.messages && sessionData.messages.length > 0) {
+        setMessages(sessionData.messages);
+      } else {
+        const welcomeMessage = {
+          role: "model",
+          parts: [
+            { text: "Hello! I'm your AI assistant. How can I help you today?" },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        setMessages([welcomeMessage]);
+      }
+    }
+  };
+
+  // Delete session
+  const deleteSession = async (sessionIdToDelete) => {
+    if (!sessionIdToDelete || !backendAvailable) return;
+
+    try {
+      await fetch(`${BACKEND_URL}/history/session/${sessionIdToDelete}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const updated = await loadUserSessions();
+      if (sessionIdToDelete === sessionId) {
+        if (updated.length > 0) {
+          await switchToSession(updated[0]._id);
+        } else {
+          await createNewSession();
+        }
+      }
+    } catch (err) {
+      debugLog("Error deleting session:", err.message);
+    }
+  };
+
+  // FIXED: Initialize chat with proper session loading
+  useEffect(() => {
+    if (!userId) {
+      debugLog("Waiting for userId to be loaded...");
+      return;
+    }
+
+    debugLog("=== INITIALIZING CHAT ===");
+    debugLog("UserId:", userId);
+
+    const initializeChat = async () => {
+      setInitializing(true);
+      setError("");
+
+      try {
+        // Step 1: Check backend health
+        debugLog("Step 1: Checking backend health...");
+        const isBackendHealthy = await checkBackendHealth();
+        setBackendAvailable(isBackendHealthy);
+
+        if (!isBackendHealthy) {
+          setError("Backend server is not available");
+          setInitializing(false);
+          return;
+        }
+
+        // Step 2: Load existing sessions
+        debugLog("Step 2: Loading user sessions...");
+        const userSessions = await loadUserSessions();
+        debugLog("Loaded sessions:", userSessions);
+        debugLog("Sessions length:", userSessions.length);
+
+        // Step 3: Switch to first session OR create new one
+        if (userSessions && userSessions.length > 0) {
+          debugLog("Step 3a: Found existing sessions, switching to first one");
+          const firstSession = userSessions[0];
+          debugLog(
+            "Switching to session:",
+            firstSession._id,
+            firstSession.sessionName
+          );
+          await switchToSession(firstSession._id);
+        } else {
+          debugLog("Step 3b: No sessions found, creating new one");
+          await createNewSession();
+        }
+
+        debugLog("=== CHAT INITIALIZED SUCCESSFULLY ===");
+      } catch (err) {
+        debugLog("Init error:", err);
+        setError("Failed to initialize chat");
+
+        // Fallback: try to create a new session
+        try {
+          await createNewSession();
+        } catch (fallbackErr) {
+          debugLog("Fallback session creation failed:", fallbackErr);
+        }
+      } finally {
+        setInitializing(false);
+      }
+    };
+
+    initializeChat();
+  }, [userId]);
+
+  // Debug sessions state changes
+  useEffect(() => {
+    debugLog(`Sessions state updated: ${sessions.length} sessions`, sessions);
+  }, [sessions]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Send message to AI
   const sendMessage = async () => {
     if (!question.trim() || loading || !backendAvailable) return;
+
     const userMessage = {
       role: "user",
       parts: [{ text: question }],
       timestamp: new Date().toISOString(),
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setQuestion("");
     setLoading(true);
@@ -251,7 +400,6 @@ export default function ChatSection({ userId = "default-user" }) {
       );
 
       if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-
       const data = await res.json();
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -286,18 +434,50 @@ export default function ChatSection({ userId = "default-user" }) {
     await createNewSession();
   };
 
-  const toggleSidebar = () => {
-    setSidebarExpanded(!sidebarExpanded);
-  };
+  const toggleSidebar = () => setSidebarExpanded(!sidebarExpanded);
 
   const truncateText = (text, maxLength = 30) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
 
-  // ... keep your UI rendering code the same (I didn’t change JSX structure) ...
+  // Show loading screen while initializing
+  if (initializing) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-lg">Loading your chat sessions...</p>
+          {userInfo && (
+            <p className="text-sm text-white/70 mt-2">
+              Welcome back, {userInfo.name}!
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error screen if no user or critical error
+  if (error && !userId) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900">
+        <div className="text-white text-center">
+          <div className="text-red-400 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-white/70 mb-4">{error}</p>
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 rounded-lg transition-colors"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full flex bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 relative overflow-hidden">
-      {/* Sessions Sidebar */}
+      {/* Sidebar */}
       <div
         className={`${
           sidebarExpanded ? "w-80" : "w-0"
@@ -309,14 +489,29 @@ export default function ChatSection({ userId = "default-user" }) {
               <h2 className="text-lg font-semibold text-white flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2 text-cyan-400" />
                 Chat Sessions
-                <span className="text-xs text-white/40 ml-2">(Database)</span>
+                <span className="text-xs text-white/40 ml-2">
+                  ({sessions.length})
+                </span>
               </h2>
+              {userInfo && (
+                <p className="text-xs text-white/60 mt-1">
+                  Welcome, {userInfo.name}
+                </p>
+              )}
+              <p className="text-xs text-white/30">
+                Backend: {backendAvailable ? "✓ Connected" : "✗ Disconnected"}
+              </p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
               {sessions.length === 0 ? (
                 <div className="text-white/60 text-sm text-center py-8">
-                  No sessions yet
+                  {initializing ? "Loading sessions..." : "No sessions yet"}
+                  <br />
+                  <span className="text-xs text-white/40">
+                    {!initializing &&
+                      "Create your first session to get started"}
+                  </span>
                 </div>
               ) : (
                 sessions.map((session) => (
@@ -350,7 +545,6 @@ export default function ChatSection({ userId = "default-user" }) {
                         ).toLocaleDateString()}
                       </p>
                     </div>
-
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -397,7 +591,6 @@ export default function ChatSection({ userId = "default-user" }) {
                   <ChevronRight className="w-5 h-5 text-white" />
                 )}
               </button>
-
               <div className="relative">
                 <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                   <Bot className="w-6 h-6 text-white" />
@@ -409,7 +602,9 @@ export default function ChatSection({ userId = "default-user" }) {
                   AI Assistant
                 </h1>
                 <p className="text-sm text-white/60">
-                  {truncateText(currentSessionName, 50)} • Database Connected
+                  {userInfo ? `Welcome, ${userInfo.name}` : `User: ${userId}`} •
+                  {truncateText(currentSessionName, 30)} •
+                  {backendAvailable ? "Connected" : "Offline"}
                 </p>
               </div>
             </div>
@@ -434,6 +629,12 @@ export default function ChatSection({ userId = "default-user" }) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto max-w-full p-6 space-y-6 relative z-10">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
           {messages.map((msg, i) => (
             <div
               key={`${sessionId}-${i}`}
@@ -446,7 +647,6 @@ export default function ChatSection({ userId = "default-user" }) {
                   <Bot className="w-4 h-4 text-white" />
                 </div>
               )}
-
               <div
                 className={`relative max-w-xs md:max-w-md lg:max-w-lg p-4 rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
                   msg.role === "user"
@@ -460,7 +660,6 @@ export default function ChatSection({ userId = "default-user" }) {
                     style={{ animationDuration: "3s" }}
                   />
                 )}
-
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -482,7 +681,6 @@ export default function ChatSection({ userId = "default-user" }) {
                     ? msg.parts[0]?.text || ""
                     : msg.parts || ""}
                 </ReactMarkdown>
-
                 <div
                   className={`absolute top-4 w-3 h-3 transform rotate-45 ${
                     msg.role === "user"
@@ -491,7 +689,6 @@ export default function ChatSection({ userId = "default-user" }) {
                   }`}
                 ></div>
               </div>
-
               {msg.role === "user" && (
                 <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
                   <User className="w-4 h-4 text-white" />
@@ -499,7 +696,6 @@ export default function ChatSection({ userId = "default-user" }) {
               )}
             </div>
           ))}
-
           {loading && (
             <div className="flex items-center space-x-3 animate-pulse">
               <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -528,13 +724,13 @@ export default function ChatSection({ userId = "default-user" }) {
           <div className="flex items-center space-x-4 max-w-4xl mx-auto">
             <div className="relative flex-1">
               <input
-                className="w-full p-4 pr-12 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 shadow-xl"
+                className="w-full p-4 pr-12 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 shadow-xl disabled:opacity-50"
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Type your message here..."
                 onKeyDown={handleKeyDown}
-                disabled={loading}
+                disabled={loading || !backendAvailable}
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/30">
                 <kbd className="px-2 py-1 text-xs bg-black/20 rounded border border-white/10">
@@ -545,7 +741,7 @@ export default function ChatSection({ userId = "default-user" }) {
 
             <button
               onClick={sendMessage}
-              disabled={!question.trim() || loading}
+              disabled={!question.trim() || loading || !backendAvailable}
               className="p-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl shadow-xl text-white transition-all duration-300 hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group"
             >
               <Send className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
@@ -555,6 +751,7 @@ export default function ChatSection({ userId = "default-user" }) {
           <p className="text-center text-white/25 text-xs mt-3">
             Press Enter to send • All messages synced to database • AI powered
             by Gemini
+            {!backendAvailable && " • ⚠️ Backend offline"}
           </p>
         </div>
       </div>

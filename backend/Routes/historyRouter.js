@@ -5,6 +5,7 @@ const {
   getSessionById,
   getAllSessionsByUser,
   addMultipleMessages,
+  deleteSessionById,
 } = require("../Controller/History");
 
 // Debug middleware
@@ -19,7 +20,8 @@ router.use((req, res, next) => {
 router.post("/session", createSession);
 router.post("/message", addMessage);
 router.post("/messages/bulk", addMultipleMessages); // For syncing multiple messages
-router.get("/session/:sessionId", getSessionById);  
+router.get("/session/:sessionId", getSessionById);
 router.get("/user/:userId/sessions", getAllSessionsByUser);
+router.delete("/delete/:sessionId", deleteSessionById);
 
 module.exports = router;

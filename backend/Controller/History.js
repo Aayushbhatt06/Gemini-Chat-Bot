@@ -248,10 +248,67 @@ const addMultipleMessages = async (req, res) => {
   }
 };
 
+const deleteSessionById = async (req, res) => {
+  const { sessionId } = req.params;
+  const { userId } = req.query;
+
+  if (!userId || !sessionId) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing userId or sessionId",
+    });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid sessionId format",
+    });
+  }
+
+  try {
+    // Find the user's history document
+    const historyDoc = await historyModel.findOne({ userId });
+    if (!historyDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "User history not found",
+      });
+    }
+
+    // Find the session to delete
+    const session = historyDoc.sessions.id(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    // Remove the session
+    session.remove();
+    await historyDoc.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Session deleted successfully",
+      sessions: historyDoc.sessions, // optional: return updated sessions
+    });
+  } catch (err) {
+    console.error("Error deleting session:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error deleting session",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   createSession,
   addMessage,
   getSessionById,
   getAllSessionsByUser,
   addMultipleMessages,
+  deleteSessionById,
 };
