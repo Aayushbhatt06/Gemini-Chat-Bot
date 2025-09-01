@@ -95,10 +95,11 @@ export default function ChatSection() {
 
     try {
       const res = await fetch(`${BACKEND_URL}/history/user/${userId}/sessions`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
       const data = await res.json();
       if (data.success && Array.isArray(data.sessions)) {
+        if (!data.sessions[0]) {
+          createNewSession();
+        }
         setSessions(data.sessions);
         return data.sessions;
       }
@@ -366,7 +367,9 @@ export default function ChatSection() {
   const handleNewSession = async () => {
     await createNewSession();
   };
-
+  const Logout = () => {
+    localStorage.removeItem("authToken");
+  };
   const toggleSidebar = () => setSidebarExpanded(!sidebarExpanded);
 
   const truncateText = (text, maxLength = 30) =>
@@ -577,6 +580,16 @@ export default function ChatSection() {
                 title="New Session"
               >
                 <Plus className="w-5 h-5 text-cyan-400" />
+              </button>
+              <button
+                onClick={() => {
+                  Logout();
+                  window.location.href = "/login";
+                }}
+                className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors text-red-400 text-sm"
+                title="Logout"
+              >
+                Logout
               </button>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("authToken");
 
   useEffect(() => {
     const verifyUser = async () => {
@@ -24,10 +24,10 @@ export default function ProtectedRoute({ children }) {
 
         const data = await res.json();
         if (data.success) setUser(data.user);
-        else localStorage.removeItem("token");
+        else localStorage.removeItem("authToken");
       } catch (err) {
         console.error("Token verification error:", err);
-        localStorage.removeItem("token");
+        localStorage.removeItem("authToken");
       } finally {
         setLoading(false);
       }

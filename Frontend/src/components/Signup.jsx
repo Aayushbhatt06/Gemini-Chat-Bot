@@ -28,7 +28,7 @@ export default function Signup() {
         setError(data.message || "Signup failed.");
       } else {
         // Save JWT token after signup
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("authToken", data.token);
         navigate("/"); // redirect to chat after signup
       }
     } catch (err) {
