@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  RotateCcw, // Added refresh icon
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -29,15 +30,12 @@ export default function ChatSection() {
   const [userId, setUserId] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false); // Added refresh state
 
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const debugLog = (message, data = null) => {
-    console.log(`[ChatSection] ${message}`, data);
   };
 
   // Load user from localStorage on component mount
@@ -47,7 +45,6 @@ export default function ChatSection() {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const user = JSON.parse(storedUser);
-          debugLog("User loaded from localStorage:", user);
           setUserId(user.id);
           setUserInfo(user);
           return;
@@ -55,7 +52,6 @@ export default function ChatSection() {
 
         const storedUserId = localStorage.getItem("userId");
         if (storedUserId) {
-          debugLog("UserId loaded from localStorage:", storedUserId);
           setUserId(storedUserId);
           return;
         }
@@ -65,16 +61,14 @@ export default function ChatSection() {
           try {
             const payload = JSON.parse(atob(token.split(".")[1]));
             if (payload.id) {
-              debugLog("UserId extracted from token:", payload.id);
               setUserId(payload.id);
               return;
             }
           } catch (e) {
-            debugLog("Failed to extract userId from token:", e);
+            console.error("Failed to extract userId from token:", e);
           }
         }
 
-        console.warn("No user data found in localStorage");
         setError("Please log in to access chat");
       } catch (error) {
         console.error("Error loading user from localStorage:", error);
@@ -88,83 +82,63 @@ export default function ChatSection() {
   // Check backend health
   const checkBackendHealth = async () => {
     try {
-      debugLog("Checking backend health...");
       const response = await fetch(`${BACKEND_URL}/health`);
-      const isHealthy = response.ok;
-      debugLog(`Backend health status: ${isHealthy}`);
-      return isHealthy;
+      return response.ok;
     } catch (err) {
-      debugLog("Backend health check failed:", err.message);
       return false;
     }
   };
 
-  // FIXED: Load all sessions for the user with better error handling
+  // Load all sessions for the user
   const loadUserSessions = async () => {
-    if (!backendAvailable) {
-      debugLog("Backend not available for loading sessions");
-      return [];
-    }
-
-    if (!userId) {
-      debugLog("No userId available for loading sessions");
-      return [];
-    }
+    if (!backendAvailable || !userId) return [];
 
     try {
-      debugLog(`Fetching sessions for user: ${userId}`);
       const res = await fetch(`${BACKEND_URL}/history/user/${userId}/sessions`);
-      debugLog(`Sessions API response status: ${res.status}`);
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      debugLog("Sessions API response:", data);
-
-      if (data.success) {
-        if (Array.isArray(data.sessions) && data.sessions.length > 0) {
-          debugLog(`Found ${data.sessions.length} sessions, updating state`);
-          setSessions(data.sessions);
-          return data.sessions;
-        } else {
-          debugLog("No sessions found in response");
-          setSessions([]);
-          return [];
-        }
-      } else {
-        debugLog("API returned success: false");
-        setSessions([]);
-        return [];
+      if (data.success && Array.isArray(data.sessions)) {
+        setSessions(data.sessions);
+        return data.sessions;
       }
+
+      setSessions([]);
+      return [];
     } catch (err) {
-      debugLog("Error loading sessions:", err.message);
+      console.error("Error loading sessions:", err);
       setSessions([]);
       return [];
     }
   };
 
+  // Added: Manual refresh function for the refresh button
+  const handleRefreshSessions = async () => {
+    if (refreshing || !backendAvailable || !userId) return;
+
+    setRefreshing(true);
+    try {
+      await loadUserSessions();
+    } catch (error) {
+      console.error("Error refreshing sessions:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Load a single session by ID
   const loadSessionFromBackend = async (sessionIdToLoad) => {
-    if (!backendAvailable || !sessionIdToLoad || !userId) {
-      debugLog("Cannot load session: missing requirements");
-      return null;
-    }
+    if (!backendAvailable || !sessionIdToLoad || !userId) return null;
 
     try {
-      debugLog(`Loading session: ${sessionIdToLoad} for user: ${userId}`);
       const url = `${BACKEND_URL}/history/session/${sessionIdToLoad}?userId=${userId}`;
       const res = await fetch(url);
-
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      debugLog("Session data received:", data);
-
       return data.success && data.session ? data.session : null;
     } catch (err) {
-      debugLog("Error loading session:", err.message);
+      console.error("Error loading session:", err);
       return null;
     }
   };
@@ -189,17 +163,14 @@ export default function ChatSection() {
       const data = await res.json();
       return data.success;
     } catch (err) {
-      debugLog("Error saving message:", err.message);
+      console.error("Error saving message:", err);
       return false;
     }
   };
 
   // Create a new session
   const createNewSession = async (sessionName = null) => {
-    if (!backendAvailable || !userId) {
-      debugLog("Cannot create session: backend unavailable or no userId");
-      return null;
-    }
+    if (!backendAvailable || !userId) return null;
 
     const name =
       sessionName ||
@@ -213,7 +184,6 @@ export default function ChatSection() {
     };
 
     try {
-      debugLog(`Creating new session: ${name}`);
       const res = await fetch(`${BACKEND_URL}/history/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -223,22 +193,17 @@ export default function ChatSection() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      debugLog("New session created:", data);
-
       if (data.success && data.session) {
         setSessionId(data.session._id);
         setCurrentSessionName(data.session.sessionName);
         setMessages([defaultMessage]);
         await saveMessageToBackend(defaultMessage);
-
-        // FIXED: Reload sessions to update sidebar
         await loadUserSessions();
-
         return data.session._id;
       }
       return null;
     } catch (err) {
-      debugLog("Error creating session:", err.message);
+      console.error("Error creating session:", err);
       return null;
     }
   };
@@ -247,9 +212,7 @@ export default function ChatSection() {
   const switchToSession = async (targetSessionId) => {
     if (targetSessionId === sessionId) return;
 
-    debugLog(`Switching to session: ${targetSessionId}`);
     const sessionData = await loadSessionFromBackend(targetSessionId);
-
     if (sessionData) {
       setSessionId(sessionData._id);
       setCurrentSessionName(sessionData.sessionName);
@@ -274,9 +237,8 @@ export default function ChatSection() {
     if (!sessionIdToDelete || !backendAvailable) return;
 
     try {
-      await fetch(`${BACKEND_URL}/history/session/${sessionIdToDelete}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${BACKEND_URL}/history/delete/${sessionIdToDelete}`, {
+        method: "GET",
       });
 
       const updated = await loadUserSessions();
@@ -288,27 +250,19 @@ export default function ChatSection() {
         }
       }
     } catch (err) {
-      debugLog("Error deleting session:", err.message);
+      console.error("Error deleting session:", err);
     }
   };
 
-  // FIXED: Initialize chat with proper session loading
+  // Initialize chat
   useEffect(() => {
-    if (!userId) {
-      debugLog("Waiting for userId to be loaded...");
-      return;
-    }
-
-    debugLog("=== INITIALIZING CHAT ===");
-    debugLog("UserId:", userId);
+    if (!userId) return;
 
     const initializeChat = async () => {
       setInitializing(true);
       setError("");
 
       try {
-        // Step 1: Check backend health
-        debugLog("Step 1: Checking backend health...");
         const isBackendHealthy = await checkBackendHealth();
         setBackendAvailable(isBackendHealthy);
 
@@ -318,37 +272,21 @@ export default function ChatSection() {
           return;
         }
 
-        // Step 2: Load existing sessions
-        debugLog("Step 2: Loading user sessions...");
         const userSessions = await loadUserSessions();
-        debugLog("Loaded sessions:", userSessions);
-        debugLog("Sessions length:", userSessions.length);
 
-        // Step 3: Switch to first session OR create new one
         if (userSessions && userSessions.length > 0) {
-          debugLog("Step 3a: Found existing sessions, switching to first one");
-          const firstSession = userSessions[0];
-          debugLog(
-            "Switching to session:",
-            firstSession._id,
-            firstSession.sessionName
-          );
-          await switchToSession(firstSession._id);
+          await switchToSession(userSessions[0]._id);
         } else {
-          debugLog("Step 3b: No sessions found, creating new one");
           await createNewSession();
         }
-
-        debugLog("=== CHAT INITIALIZED SUCCESSFULLY ===");
       } catch (err) {
-        debugLog("Init error:", err);
+        console.error("Init error:", err);
         setError("Failed to initialize chat");
 
-        // Fallback: try to create a new session
         try {
           await createNewSession();
         } catch (fallbackErr) {
-          debugLog("Fallback session creation failed:", fallbackErr);
+          console.error("Fallback session creation failed:", fallbackErr);
         }
       } finally {
         setInitializing(false);
@@ -357,11 +295,6 @@ export default function ChatSection() {
 
     initializeChat();
   }, [userId]);
-
-  // Debug sessions state changes
-  useEffect(() => {
-    debugLog(`Sessions state updated: ${sessions.length} sessions`, sessions);
-  }, [sessions]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -486,13 +419,30 @@ export default function ChatSection() {
         {sidebarExpanded && (
           <>
             <div className="p-4 border-b border-white/10">
-              <h2 className="text-lg font-semibold text-white flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2 text-cyan-400" />
-                Chat Sessions
-                <span className="text-xs text-white/40 ml-2">
-                  ({sessions.length})
-                </span>
-              </h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-white flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2 text-cyan-400" />
+                  Chat Sessions
+                  <span className="text-xs text-white/40 ml-2">
+                    ({sessions.length})
+                  </span>
+                </h2>
+
+                {/* Added: Refresh Button */}
+                <button
+                  onClick={handleRefreshSessions}
+                  disabled={refreshing || !backendAvailable}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                  title="Refresh sessions"
+                >
+                  <RotateCcw
+                    className={`w-4 h-4 text-white transition-transform duration-300 ${
+                      refreshing ? "animate-spin" : "group-hover:rotate-180"
+                    }`}
+                  />
+                </button>
+              </div>
+
               {userInfo && (
                 <p className="text-xs text-white/60 mt-1">
                   Welcome, {userInfo.name}
@@ -504,13 +454,17 @@ export default function ChatSection() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
-              {sessions.length === 0 ? (
+              {refreshing ? (
                 <div className="text-white/60 text-sm text-center py-8">
-                  {initializing ? "Loading sessions..." : "No sessions yet"}
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-2"></div>
+                  Refreshing sessions...
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-white/60 text-sm text-center py-8">
+                  No sessions yet
                   <br />
                   <span className="text-xs text-white/40">
-                    {!initializing &&
-                      "Create your first session to get started"}
+                    Create your first session to get started
                   </span>
                 </div>
               ) : (
@@ -574,6 +528,7 @@ export default function ChatSection() {
         )}
       </div>
 
+      {/* Rest of the component remains the same... */}
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col relative">
         {/* Header */}

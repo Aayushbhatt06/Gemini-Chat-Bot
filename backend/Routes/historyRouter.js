@@ -22,6 +22,6 @@ router.post("/message", addMessage);
 router.post("/messages/bulk", addMultipleMessages); // For syncing multiple messages
 router.get("/session/:sessionId", getSessionById);
 router.get("/user/:userId/sessions", getAllSessionsByUser);
-router.delete("/delete/:sessionId", deleteSessionById);
+router.get("/delete/:sessionId", deleteSessionById);
 
 module.exports = router;
