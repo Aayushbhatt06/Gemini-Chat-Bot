@@ -2,24 +2,47 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    role: { type: String, enum: ["user", "model"], required: true },
-    parts: [{ text: { type: String, required: true } }],
-    timestamp: { type: Date, default: Date.now },
+    role: {
+      type: String,
+      enum: ["user", "model", "bot"],
+      required: true,
+    },
+    parts: [
+      {
+        text: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { _id: false }
+);
+
+const sessionSchema = new mongoose.Schema(
+  {
+    sessionName: {
+      type: String,
+      default: "New Session",
+    },
+    messages: [messageSchema],
+  },
+  { timestamps: true }
 );
 
 const historySchema = new mongoose.Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: true,
     },
-    sessionName: { type: String, default: "New Session" }, // optional label for the session
-    messages: [messageSchema],
+    sessions: [sessionSchema],
   },
-  { timestamps: true } // adds createdAt, updatedAt
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("History", historySchema);

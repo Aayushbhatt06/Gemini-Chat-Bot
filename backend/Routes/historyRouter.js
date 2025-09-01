@@ -4,18 +4,22 @@ const {
   addMessage,
   getSessionById,
   getAllSessionsByUser,
-} = require("../Controller/HistoryController");
+  addMultipleMessages,
+} = require("../Controller/History");
 
-// Create new chat session
+// Debug middleware
+router.use((req, res, next) => {
+  console.log(`History Route: ${req.method} ${req.originalUrl}`);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log("Request body:", req.body);
+  }
+  next();
+});
+
 router.post("/session", createSession);
-
-// Add message to session
 router.post("/message", addMessage);
-
-// Get single session
-router.get("/session/:sessionId", getSessionById);
-
-// Get all sessions for a user
+router.post("/messages/bulk", addMultipleMessages); // For syncing multiple messages
+router.get("/session/:sessionId", getSessionById);  
 router.get("/user/:userId/sessions", getAllSessionsByUser);
 
 module.exports = router;
