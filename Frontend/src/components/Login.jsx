@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -25,8 +26,7 @@ export default function Login() {
       if (!res.ok) {
         setError(data.message || "Login failed.");
       } else {
-        // Store all necessary data in localStorage
-        localStorage.setItem("authToken", data.token); // token key must match ProtectedRoute
+        localStorage.setItem("authToken", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.user.id);
 
@@ -40,10 +40,27 @@ export default function Login() {
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !loading) {
-      e.preventDefault();
-      handleLogin();
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("userId", data.user.id);
+
+        navigate("/");
+      } else {
+        setError(data.message || "Google login failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong with Google login.");
     }
   };
 
@@ -60,7 +77,7 @@ export default function Login() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyPress={(e) => e.key === "Enter" && !loading && handleLogin()}
             disabled={loading}
             className="w-full p-4 rounded-2xl bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 shadow-xl disabled:opacity-50"
           />
@@ -69,7 +86,7 @@ export default function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyPress={(e) => e.key === "Enter" && !loading && handleLogin()}
             disabled={loading}
             className="w-full p-4 rounded-2xl bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 shadow-xl disabled:opacity-50"
           />
@@ -83,6 +100,14 @@ export default function Login() {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+
+          {/* Google Login Button */}
+          <div className="flex justify-center mt-4">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google login failed.")}
+            />
+          </div>
         </div>
 
         <p className="text-center text-white/50 mt-4 text-sm">

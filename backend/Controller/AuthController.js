@@ -2,7 +2,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../Models/user");
+const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const signup = async (req, res) => {
   try {
@@ -88,4 +91,47 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { signup, login };
+// ✅ New Google Login
+const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body; // from frontend Google login
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    // Find or create user
+    let user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(403).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    // Generate JWT same as normal login
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      success: true,
+      token,
+      user: { id: user._id, name: user.name, email: user.email },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      message: "Invalid Google token",
+      success: false,
+    });
+  }
+};
+
+module.exports = { signup, login, googleLogin };

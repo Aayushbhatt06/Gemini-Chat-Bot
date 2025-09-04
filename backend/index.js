@@ -6,6 +6,7 @@ const cors = require("cors");
 const authRoutes = require("./Routes/AuthRouter");
 const verify = require("./Routes/verify");
 const historyRouter = require("./Routes/historyRouter");
+const Google = require("./Routes/Google");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.get("/health", (req, res) =>
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() })
 );
 
+app.use("/api/auth", Google);
 app.use("/auth", authRoutes);
 app.use("/verify", verify);
 app.use("/history", historyRouter);

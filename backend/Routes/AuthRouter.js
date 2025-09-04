@@ -9,4 +9,5 @@ const {
 router.post("/login", LoginValidation, login);
 router.post("/signup", signupValidation, signup);
 
+
 module.exports = router;

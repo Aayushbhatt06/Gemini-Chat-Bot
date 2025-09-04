@@ -29,6 +29,8 @@ export default function Signup() {
       } else {
         // Save JWT token after signup
         localStorage.setItem("authToken", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("userId", data.user.id);
         navigate("/"); // redirect to chat after signup
       }
     } catch (err) {

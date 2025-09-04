@@ -9,13 +9,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  RotateCcw, // Added refresh icon
+  RotateCcw,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND;
 
 export default function ChatSection() {
   const [messages, setMessages] = useState([]);
@@ -628,6 +628,7 @@ export default function ChatSection() {
                     style={{ animationDuration: "3s" }}
                   />
                 )}
+
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -643,12 +644,30 @@ export default function ChatSection() {
                     li: ({ node, ...props }) => (
                       <li className="list-disc ml-5" {...props} />
                     ),
+                    // ✅ Fix for code blocks
+                    code: ({ node, inline, className, children, ...props }) => {
+                      return inline ? (
+                        <code
+                          className="bg-black/30 px-1 py-0.5 rounded text-pink-400 font-mono break-words"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      ) : (
+                        <pre className="bg-black/40 border border-white/10 rounded-xl p-4 overflow-x-auto max-w-full">
+                          <code className="font-mono text-sm text-white break-words whitespace-pre-wrap">
+                            {children}
+                          </code>
+                        </pre>
+                      );
+                    },
                   }}
                 >
                   {Array.isArray(msg.parts)
                     ? msg.parts[0]?.text || ""
                     : msg.parts || ""}
                 </ReactMarkdown>
+
                 <div
                   className={`absolute top-4 w-3 h-3 transform rotate-45 ${
                     msg.role === "user"
