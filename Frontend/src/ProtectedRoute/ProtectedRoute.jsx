@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND;
 export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }) {
       }
 
       try {
-        const res = await fetch("http://localhost:3000/verify/verifyToken", {
+        const res = await fetch(`${BACKEND_URL}/verify/verifyToken`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
