@@ -10,11 +10,14 @@ const Google = require("./Routes/Google");
 
 const app = express();
 const port = process.env.PORT || 3000;
-
+const allowedOrigins = [
+  "http://localhost:5173", // local dev
+  "https://your-frontend.vercel.app", // deployed frontend
+];
 // ✅ Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173https://gemini-chat-bot-alpha.vercel.app/",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
