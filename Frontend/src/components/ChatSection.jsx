@@ -15,7 +15,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const BACKEND_URL = import.meta.env.VITE_BACKEND;
+const BACKEND_URL = import.meta.env.VITE_BACKEND || "http://localhost:3000";
 
 export default function ChatSection() {
   const [messages, setMessages] = useState([]);

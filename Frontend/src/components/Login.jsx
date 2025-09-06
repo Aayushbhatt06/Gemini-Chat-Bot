@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND;
+const BACKEND_URL = import.meta.env.VITE_BACKEND || "http://localhost:3000";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

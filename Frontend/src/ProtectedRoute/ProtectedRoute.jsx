@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-const BACKEND_URL = import.meta.env.VITE_BACKEND;
+const BACKEND_URL = import.meta.env.VITE_BACKEND || "http://localhost:3000";
 export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
