@@ -1,18 +1,23 @@
 const express = require("express");
 require("dotenv").config();
-require("./Models/db");
+require("../Models/db");
 const cors = require("cors");
 
-const authRoutes = require("./Routes/AuthRouter");
-const verify = require("./Routes/verify");
-const historyRouter = require("./Routes/historyRouter");
-const Google = require("./Routes/Google");
+const authRoutes = require("../Routes/AuthRouter");
+const verify = require("../Routes/verify");
+const historyRouter = require("../Routes/historyRouter");
+const Google = require("../Routes/Google");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // ✅ Middleware
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: "http://localhost:5173https://gemini-chat-bot-alpha.vercel.app/",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -40,7 +45,7 @@ app.use("/verify", verify);
 app.use("/history", historyRouter);
 
 // ✅ Start server
-// app.listen(port, () => {
-//   console.log(`Server running on port ${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
 module.exports = app;
