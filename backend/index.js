@@ -13,6 +13,7 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = [
   "http://localhost:5173", // local dev
   "https://gemini-chat-ebxa4jhj2-aayushbhatt28306-6142s-projects.vercel.app", // deployed frontend
+  "https://gemini-chat-bot-alpha.vercel.app",
 ];
 // ✅ Middleware
 app.use(
