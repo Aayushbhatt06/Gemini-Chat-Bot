@@ -12,7 +12,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const allowedOrigins = [
   "http://localhost:5173", // local dev
-  "https://gemini-chat-bot-bqse.onrender.com", // deployed frontend
+  "https://gemini-chat-ebxa4jhj2-aayushbhatt28306-6142s-projects.vercel.app", // deployed frontend
 ];
 // ✅ Middleware
 app.use(
