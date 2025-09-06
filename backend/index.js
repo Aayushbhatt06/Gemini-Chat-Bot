@@ -1,12 +1,12 @@
 const express = require("express");
 require("dotenv").config();
-require("../Models/db");
+require("./Models/db");
 const cors = require("cors");
 
-const authRoutes = require("../Routes/AuthRouter");
-const verify = require("../Routes/verify");
-const historyRouter = require("../Routes/historyRouter");
-const Google = require("../Routes/Google");
+const authRoutes = require("./Routes/AuthRouter");
+const verify = require("./Routes/verify");
+const historyRouter = require("./Routes/historyRouter");
+const Google = require("./Routes/Google");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -45,7 +45,7 @@ app.use("/verify", verify);
 app.use("/history", historyRouter);
 
 // ✅ Start server
-// app.listen(port, () => {
-//   console.log(`Server running on port ${port}`);
-// });
-module.exports = app;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running on port ${port}`);
+});
+// module.exports = app;
