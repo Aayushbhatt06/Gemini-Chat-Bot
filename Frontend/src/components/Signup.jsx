@@ -17,7 +17,7 @@ export default function Signup() {
     setError("");
 
     try {
-      const res = await fetch(BACKEND_URL, {
+      const res = await fetch(`${BACKEND_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
