@@ -3,6 +3,7 @@ import ChatSection from "./components/ChatSection";
 import Login from "./components/Login"; // your login component
 import Signup from "./components/Signup"; // your signup component
 import ProtectedRoute from "./ProtectedRoute/ProtectedRoute"; // your auth wrapper
+import VerifyOtp from "./components/VerifyOtp";
 
 function App() {
   const router = createBrowserRouter([
@@ -22,6 +23,10 @@ function App() {
     {
       path: "/signup",
       element: <Signup />,
+    },
+    {
+      path: "/verify-otp",
+      element: <VerifyOtp />,
     },
   ]);
 

@@ -2,11 +2,12 @@ const express = require("express");
 require("dotenv").config();
 require("./Models/db");
 const cors = require("cors");
-
+const sendEmail = require("./utils/SendGridEmail");
 const authRoutes = require("./Routes/AuthRouter");
-const verify = require("./Routes/verify");
 const historyRouter = require("./Routes/historyRouter");
 const Google = require("./Routes/Google");
+const { verify } = require("jsonwebtoken");
+const verRouter = require("./Routes/verify");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -45,8 +46,13 @@ app.get("/health", (req, res) =>
 
 app.use("/api/auth", Google);
 app.use("/auth", authRoutes);
-app.use("/verify", verify);
+app.use("/verify", verRouter);
 app.use("/history", historyRouter);
+// app.get("/sendemail", async (req, res) => {
+//   const otp = 280306; // or generate dynamically
+//   const result = await sendEmail(otp, "bhattaa@rknec.edu");
+//   res.json(result);
+// });
 
 // ✅ Start server
 app.listen(port, "0.0.0.0", () => {
