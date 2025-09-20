@@ -5,55 +5,9 @@ const userModel = require("../Models/user");
 const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
 const sendEmail = require("../utils/SendGridEmail");
+const PendingUser = require("../Models/PendingUser");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-// const signup = async (req, res) => {
-//   const otp = Math.floor(100000 + Math.random() * 900000);
-//   try {
-//     const { name, email, password } = req.body;
-
-//     const existingUser = await userModel.findOne({ email });
-//     if (existingUser) {
-//       return res.status(400).json({
-//         message: "User already exists",
-//         success: false,
-//       });
-//     }
-//     const result = await sendEmail(otp,email);
-
-//     const hashedPassword = await bcrypt.hash(password, process.env.HASH);
-
-//     const newUser = new userModel({
-//       name,
-//       email,
-//       password: hashedPassword,
-//     });
-
-//     await newUser.save();
-
-//     const token = jwt.sign(
-//       { id: newUser._id, email: newUser.email },
-//       process.env.SECRET,
-//       { expiresIn: "1d" }
-//     );
-
-//     res.status(201).json({
-//       message: "User registered successfully",
-//       success: true,
-//       token,
-//       user: { id: newUser._id, name: newUser.name, email: newUser.email },
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       message: "Server error",
-//       success: false,
-//     });
-//   }
-// };
-
-const PendingUser = require("../Models/PendingUser");
 
 const signup = async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000);
