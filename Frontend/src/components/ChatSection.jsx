@@ -30,7 +30,7 @@ export default function ChatSection() {
   const [userId, setUserId] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState("");
-  const [refreshing, setRefreshing] = useState(false); // Added refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -38,7 +38,6 @@ export default function ChatSection() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Load user from localStorage on component mount
   useEffect(() => {
     const getUserFromStorage = () => {
       try {
@@ -325,7 +324,7 @@ export default function ChatSection() {
       }));
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
