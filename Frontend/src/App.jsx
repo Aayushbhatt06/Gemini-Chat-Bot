@@ -4,11 +4,12 @@ import Login from "./components/Login"; // your login component
 import Signup from "./components/Signup"; // your signup component
 import ProtectedRoute from "./ProtectedRoute/ProtectedRoute"; // your auth wrapper
 import VerifyOtp from "./components/VerifyOtp";
+import GeminiChatLanding from "./components/Landing";
 
 function App() {
   const router = createBrowserRouter([
     {
-      path: "/",
+      path: "/home",
       element: (
         <ProtectedRoute>
           <ChatSection />
@@ -27,6 +28,10 @@ function App() {
     {
       path: "/verify-otp",
       element: <VerifyOtp />,
+    },
+    {
+      path: "/",
+      element: <GeminiChatLanding />,
     },
   ]);
 

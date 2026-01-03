@@ -31,7 +31,7 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.user.id);
 
-        navigate("/");
+        navigate("/home");
       }
     } catch (err) {
       console.error(err);
@@ -55,7 +55,7 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.user.id);
 
-        navigate("/");
+        navigate("/home");
       } else {
         setError(data.message || "Google login failed.");
       }
