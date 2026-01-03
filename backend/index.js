@@ -48,11 +48,11 @@ app.use("/api/auth", Google);
 app.use("/auth", authRoutes);
 app.use("/verify", verRouter);
 app.use("/history", historyRouter);
-// app.get("/sendemail", async (req, res) => {
-//   const otp = 280306; // or generate dynamically
-//   const result = await sendEmail(otp, "bhattaa@rknec.edu");
-//   res.json(result);
-// });
+app.get("/sendemail", async (req, res) => {
+  const otp = 280306; // or generate dynamically
+  const result = await sendEmail(otp, "bhattaa@rknec.edu");
+  res.json(result);
+});
 
 // ✅ Start server
 app.listen(port, "0.0.0.0", () => {
